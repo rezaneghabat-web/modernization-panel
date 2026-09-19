@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Site Modernization Panel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0d1117; --panel:#141b24; --panel2:#182130; --border:#26313f;
+  --text:#e7edf3; --text-dim:#93a3b5; --text-faint:#5c6b7d;
+  --accent:#4fd1a5; --accent-dim:#2c7a5c;
+  --amber:#e0a84a; --red:#e15b5b; --red-dim:#5c2a2a;
+  --blue:#5b9de1; --purple:#b98be0;
+  --mono: 'SF Mono', 'Consolas', ui-monospace, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f4f6f8; --panel:#ffffff; --panel2:#eef1f4;
+    --border:#d7dee5; --text:#1a2430; --text-dim:#5c6b7d; --text-faint:#94a3b3;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f4f6f8; --panel:#ffffff; --panel2:#eef1f4;
+  --border:#d7dee5; --text:#1a2430; --text-dim:#5c6b7d; --text-faint:#94a3b3;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+.wrap{max-width:1320px;margin:0 auto;padding:24px 16px 40px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:16px}
+h1{font-size:20px;margin:0 0 4px;font-weight:700}
+.sub{color:var(--text-dim);font-size:12.5px}
+.hdr-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:7px 12px;min-width:66px;text-align:center}
+.stat b{display:block;font-size:17px;font-family:var(--mono)}
+.stat span{font-size:10.5px;color:var(--text-dim)}
+.btn{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 13px;font-size:12.5px;cursor:pointer;font-weight:600}
+.btn.primary{background:var(--accent-dim);color:#0d1117;border-color:var(--accent-dim)}
+.btn.danger{background:var(--red-dim);color:#ffb3b3;border-color:var(--red-dim)}
+.role-pill{font-size:11px;padding:4px 10px;border-radius:999px;background:var(--panel2);border:1px solid var(--border);color:var(--text-dim)}
+.uploads{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px}
+@media (max-width:960px){.uploads{grid-template-columns:1fr 1fr}}
+@media (max-width:720px){.uploads{grid-template-columns:1fr}}
+.upcard{background:var(--panel);border:1px dashed var(--border);border-radius:12px;padding:14px}
+.upcard h3{margin:0 0 4px;font-size:13.5px}
+.upcard p{margin:0 0 9px;color:var(--text-dim);font-size:11.5px;line-height:1.6}
+.upcard label{display:inline-block;background:var(--accent-dim);color:#0d1117;font-weight:700;font-size:12.5px;padding:7px 15px;border-radius:8px;cursor:pointer}
+.upcard input{display:none}
+.log{font-size:11.5px;color:var(--text-dim);margin-top:8px;white-space:pre-line}
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.tab{background:none;border:none;color:var(--text-dim);font-family:var(--sans);font-size:13px;padding:9px 14px;cursor:pointer;border-bottom:2px solid transparent;font-weight:600}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.view{display:none}
+.view.active{display:block}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.toolbar input[type=text]{background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;min-width:180px}
+.toolbar select{background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px}
+.chip{border:1px solid var(--border);background:var(--panel);color:var(--text-dim);border-radius:999px;padding:6px 13px;font-size:12px;cursor:pointer;user-select:none}
+.chip.active{background:var(--accent-dim);color:#0d1117;border-color:var(--accent-dim);font-weight:700}
+.chip.redmode.active{background:var(--red);color:#fff;border-color:var(--red)}
+.kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:10px}
+.kcol{flex:0 0 250px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:10px;max-height:74vh;display:flex;flex-direction:column}
+.kcol-head{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 10px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.kcol-head b{font-size:12.5px}
+.kcol-head span{font-family:var(--mono);font-size:11px;color:var(--text-faint);background:var(--panel);border-radius:999px;padding:2px 8px}
+.kcol-body{overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.kcol-empty{color:var(--text-faint);font-size:11px;text-align:center;padding:14px 0}
+.badge{font-size:10px;padding:3px 9px;border-radius:999px;white-space:nowrap;font-weight:700}
+.badge.ongoing{background:#2c3a52;color:var(--blue)}
+.badge.done{background:#1e3a2e;color:var(--accent)}
+.badge.descoped{background:#3a3220;color:var(--amber)}
+.badge.problematic,.badge.regressed{background:var(--red-dim);color:#ffb3b3}
+.badge.deleted{background:#2a2a2a;color:#888}
+.kcard{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:9px;cursor:pointer;font-size:12px}
+.kcard:hover{border-color:var(--text-faint)}
+.kcard.regressed{border-color:var(--red);box-shadow:0 0 0 1px var(--red) inset}
+.kcard .top{display:flex;justify-content:space-between;align-items:center}
+.kcard .site-code{font-family:var(--mono);font-weight:700;font-size:13px}
+.kcard .wo-id{font-family:var(--mono);font-size:10px;color:var(--text-faint)}
+.kcard .meta{margin:5px 0 0;font-size:11px;color:var(--text-dim)}
+.kcard .regress-flag{font-size:10px;margin-top:5px;color:#ffb3b3}
+.empty{color:var(--text-faint);text-align:center;padding:60px 0;font-size:13px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;z-index:20}
+.modal-bg.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;max-width:620px;width:100%;padding:22px}
+.modal h2{margin:0 0 2px;font-family:var(--mono);font-size:19px}
+.modal .close{float:right;cursor:pointer;color:var(--text-dim);font-size:20px;line-height:1}
+.row{display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:8px 0;font-size:13px;gap:12px}
+.row span:first-child{color:var(--text-dim)}
+.row span:last-child{text-align:right;font-family:var(--mono)}
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+.step{font-size:11px;padding:5px 9px;border-radius:7px;background:var(--panel2);color:var(--text-faint);border:1px solid var(--border)}
+.step.done{color:var(--accent);border-color:var(--accent-dim)}
+.step.current{background:var(--accent-dim);color:#0d1117;font-weight:700;border-color:var(--accent-dim)}
+.hist{margin-top:14px;font-size:12px}
+.hist div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--border);color:var(--text-dim)}
+.footer-note{color:var(--text-faint);font-size:11px;margin-top:26px;text-align:center}
+
+.tl-wrap{overflow-x:auto}
+.tl-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);min-width:900px}
+.tl-label{flex:0 0 150px;font-family:var(--mono);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tl-track{flex:1;position:relative;height:20px;background:var(--panel2);border-radius:5px}
+.tl-seg{position:absolute;top:0;bottom:0;border-radius:5px;min-width:3px}
+.tl-legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;font-size:11px;color:var(--text-dim)}
+.tl-legend span{display:inline-flex;align-items:center;gap:5px}
+.tl-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+.flowmap-wrap{overflow-x:auto;padding:10px 0}
+.flowmap{display:flex;align-items:center;gap:6px;min-width:1100px;padding:20px 6px}
+.fbox{background:var(--panel);border:2px solid var(--border);border-radius:10px;padding:10px 12px;text-align:center;cursor:pointer;min-width:108px;flex-shrink:0}
+.fbox:hover{border-color:var(--accent)}
+.fbox b{display:block;font-size:20px;font-family:var(--mono);color:var(--accent)}
+.fbox span{font-size:10.5px;color:var(--text-dim);display:block;margin-top:3px;line-height:1.3}
+.fbox.end b{color:var(--purple)}
+.farrow{color:var(--text-faint);font-size:18px;flex-shrink:0}
+.fbranches{display:flex;flex-direction:column;gap:10px}
+.fbranch{display:flex;align-items:center;gap:6px}
+.fbox.small{min-width:92px;padding:7px 9px}
+.fbox.small b{font-size:16px}
+.fbox.small span{font-size:9.5px}
+
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:820px){.dash-grid{grid-template-columns:1fr}}
+.dash-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
+.dash-card h3{margin:0 0 12px;font-size:13.5px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11.5px}
+.bar-row .bl{flex:0 0 150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim)}
+.bar-row .bt{flex:1;background:var(--panel2);border-radius:5px;height:14px;position:relative}
+.bar-row .bf{position:absolute;top:0;left:0;bottom:0;background:var(--accent-dim);border-radius:5px}
+.bar-row .bv{flex:0 0 34px;text-align:right;font-family:var(--mono);font-size:11px}
+.stuck-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--border);font-size:12px}
+.stuck-row b{color:var(--amber);font-family:var(--mono)}
+.kcard .prog{margin-top:7px;height:5px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.kcard .prog i{display:block;height:100%;background:var(--accent)}
+.kcard .prog-label{font-size:10px;color:var(--text-faint);margin-top:3px;font-family:var(--mono)}
+.fin-section{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)}
+.fin-section h4{margin:0 0 8px;font-size:12.5px;color:var(--text-dim)}
+.big-progress{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.big-progress .num{font-family:var(--mono);font-size:32px;color:var(--accent);font-weight:700}
+.big-progress .bar{flex:1;height:10px;background:var(--panel2);border-radius:5px;overflow:hidden}
+.big-progress .bar i{display:block;height:100%;background:var(--accent)}
+.range-tool{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.range-tool input[type=date]{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:12.5px}
+.range-result{font-size:12px;margin-top:10px}
+.range-result table{width:100%;border-collapse:collapse;font-size:11.5px}
+.range-result th,.range-result td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--border)}
+.range-result th{color:var(--text-dim);font-weight:600}
+
+.gate-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:50}
+.gate-bg.open{display:flex}
+.gate-box{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:28px;width:300px;text-align:center}
+.gate-box h3{margin:0 0 16px;font-size:16px}
+.gate-box input{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-size:14px;margin-bottom:10px}
+.gate-box button{width:100%;background:var(--accent-dim);color:#0d1117;font-weight:700;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:13px}
+.gate-err{color:var(--red);font-size:11.5px;margin-top:8px;min-height:14px}
+
+.users-modal{max-width:460px}
+.user-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.user-row .u-role{font-size:10px;padding:2px 8px;border-radius:999px;background:var(--panel2);color:var(--text-dim);margin-left:8px}
+.add-user-form{display:flex;flex-direction:column;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.add-user-form input, .add-user-form select{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Site Modernization Panel</h1>
+      <div class="sub" id="subline">Loading...</div>
+    </div>
+    <div class="hdr-right">
+      <div class="stats" id="stats"></div>
+      <span class="role-pill" id="roleLabel" style="display:none"></span>
+      <button class="btn" id="usersBtn" style="display:none">Manage users</button>
+      <button class="btn" id="logoutBtn" style="display:none">Sign out</button>
+    </div>
+  </header>
+
+  <div class="uploads" id="uploadsSection">
+    <div class="upcard">
+      <h3>File 1 — Site Assignment</h3>
+      <p>Full list of assigned sites, with unique site code and project details.</p>
+      <label>Choose Excel file<input type="file" id="file1" accept=".xlsx,.xls"></label>
+      <div class="log" id="log1"></div>
+    </div>
+    <div class="upcard">
+      <h3>File 2 — Daily Workorder History</h3>
+      <p>Uploaded every day; updates the current stage of each Work Order.</p>
+      <label>Choose Excel file<input type="file" id="file2" accept=".xlsx,.xls"></label>
+      <div class="log" id="log2"></div>
+    </div>
+    <div class="upcard">
+      <h3>File 3 — Contractor Payments</h3>
+      <p>5 columns: Site code, Contractor (Chakameh), Determined amount, Paid amount, Remaining amount.</p>
+      <label>Choose Excel file<input type="file" id="file3" accept=".xlsx,.xls"></label>
+      <div class="log" id="log3"></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="kanban">Kanban</button>
+    <button class="tab" data-tab="timeline">Timeline</button>
+    <button class="tab" data-tab="flowmap">Flow Map</button>
+    <button class="tab" data-tab="dashboard">Dashboard</button>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Search site code or WO...">
+    <select id="statusFilter">
+      <option value="">All statuses</option>
+      <option value="On-Going">On-Going</option>
+      <option value="Done">Done</option>
+      <option value="Descoped">Descoped</option>
+      <option value="Problematic">Problematic</option>
+    </select>
+    <select id="stageFilter"><option value="">All stages</option></select>
+    <select id="contractorFilter"><option value="">All contractors</option></select>
+    <select id="paymentFilter">
+      <option value="">Any payment status</option>
+      <option value="outstanding">Outstanding balance</option>
+      <option value="paid">Fully paid</option>
+      <option value="none">No financial data</option>
+    </select>
+    <span class="chip redmode" id="redOnly">Regressed only 🔴</span>
+  </div>
+
+  <div id="view-kanban" class="view active"><div id="kanban" class="kanban"></div></div>
+  <div id="view-timeline" class="view">
+    <div class="tl-legend" id="tlLegend"></div>
+    <div class="tl-wrap"><div id="timeline"></div></div>
+  </div>
+  <div id="view-flowmap" class="view"><div class="flowmap-wrap"><div id="flowmap" class="flowmap"></div></div></div>
+  <div id="view-dashboard" class="view">
+    <div class="dash-card" style="margin-bottom:16px">
+      <h3>Progress change between two dates</h3>
+      <div class="range-tool">
+        <input type="date" id="rangeFrom"> <span style="color:var(--text-dim);font-size:12px">to</span> <input type="date" id="rangeTo">
+        <button class="btn primary" id="rangeBtn">Compare</button>
+      </div>
+      <div id="rangeResult" class="range-result"></div>
+    </div>
+    <div class="dash-grid" id="dashboard"></div>
+  </div>
+
+  <div class="footer-note">This site was prepared and developed by Reza Neghabat</div>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+
+<div class="modal-bg" id="usersBg">
+  <div class="modal users-modal">
+    <span class="close" onclick="closeUsers()">×</span>
+    <h2 style="font-family:var(--sans);font-size:17px">Manage users</h2>
+    <div id="usersList"></div>
+    <form class="add-user-form" id="addUserForm">
+      <input type="text" id="newUsername" placeholder="Username" required autocomplete="off">
+      <input type="password" id="newPassword" placeholder="Password" required autocomplete="off">
+      <select id="newRole">
+        <option value="viewer">Viewer (read-only)</option>
+        <option value="admin">Admin (full access)</option>
+      </select>
+      <button class="btn primary" type="submit">Add user</button>
+    </form>
+    <div class="gate-err" id="usersErr"></div>
+  </div>
+</div>
+
+<div class="gate-bg" id="gateBg">
+  <div class="gate-box">
+    <h3>🔒 Sign in</h3>
+    <form id="gateForm">
+      <input type="text" id="gateUser" placeholder="Username" autocomplete="off">
+      <input type="password" id="gateInput" placeholder="Password" autocomplete="off">
+      <button type="submit">Sign in</button>
+    </form>
+    <div class="gate-err" id="gateErr"></div>
+  </div>
+</div>
+
+<script>
+const STAGES = [
+  {key:'sfr assessment', label:'SFR Assessment', seq:0, group:0},
+  {key:'sfr modification', label:'SFR Modification', seq:1, group:0},
+  {key:'site implementation', label:'Site Implementation', seq:2, group:1},
+  {key:'rnd imp. check', label:'RND Impl. Check', seq:3, group:2, aliases:['rnd imp check','rnd impl check','rnd imp. check','rnd impl. check']},
+  {key:'fac impl', label:'FAC Impl', seq:4, group:3},
+  {key:'project fac rnd fdd', label:'Project FAC RND FDD', seq:5, group:4, branch:'A'},
+  {key:'rnd fdd fac approval', label:'RND FDD FAC Approval', seq:6, group:4, branch:'A'},
+  {key:'project fac ms', label:'Project FAC MS', seq:5, group:4, branch:'B'},
+  {key:'ms fac approval', label:'MS FAC Approval', seq:6, group:4, branch:'B'},
+  {key:'project fac qa', label:'Project FAC QA', seq:7, group:4, branch:'B'},
+  {key:'qa fac approval', label:'QA FAC Approval', seq:8, group:4, branch:'B'},
+  {key:'pm fac assessment', label:'PM FAC Assessment', seq:9, group:5},
+  {key:'end', label:'End', seq:10, group:6},
+];
+const STEP_ORDER = ['sfr assessment','site implementation','rnd imp. check','fac impl','project fac rnd fdd / project fac ms','pm fac assessment','end'];
+const GROUP_COLORS = {0:'#7c9cff',1:'#5b9de1',2:'#4fd1a5',3:'#e0a84a',4:'#b98be0',5:'#e17ba0',6:'#4fd1a5'};
+function stageColor(label){
+  if(label==='Delete') return '#5c6b7d';
+  const st = STAGES.find(s=>s.label===label);
+  return st ? (GROUP_COLORS[st.group]||'#5c6b7d') : '#5c6b7d';
+}
+function normStage(raw){
+  if(!raw) return null;
+  const s = String(raw).trim().toLowerCase().replace(/\s+/g,' ');
+  if(s === 'delete') return {key:'delete', label:'Delete', seq:-1, group:-1};
+  for(const st of STAGES){ if(st.key===s) return st; if(st.aliases && st.aliases.includes(s)) return st; }
+  for(const st of STAGES){ if(s.includes(st.key.split(' ')[0]) && s.includes(st.key.split(' ').slice(-1)[0])) return st; }
+  return {key:s, label:raw, seq:99, group:9};
+}
+function parseDate(s){
+  if(!s) return null;
+  const iso = String(s).includes('T') ? s : String(s).replace(' ','T');
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d;
+}
+const MAX_SEQ = 10; // stage seq of 'End'
+function progressPercent(rec){
+  if(!rec || rec.noWO || rec.currentStageKey==='delete') return null;
+  if(rec.currentStageSeq===undefined || rec.currentStageSeq===null || rec.currentStageSeq<0) return null;
+  return Math.round((rec.currentStageSeq/MAX_SEQ)*100);
+}
+function stageSeqAtDate(rec, date){
+  if(!rec || !rec.history || !rec.history.length) return null;
+  let seq = null;
+  for(const h of rec.history){
+    const d = parseDate(h.date);
+    if(d && d<=date){
+      const st = STAGES.find(s=>s.label===h.stage);
+      if(st && st.seq>=0) seq = st.seq;
+    }
+  }
+  return seq;
+}
+function money(n){
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-US');
+}
+
+// ---------- storage / auth ----------
+const Store = {
+  mode:'none', db:null, token:'', role:'', username:'',
+  async init(){
+    if(typeof window.claude !== 'undefined'){
+      try{ this.db = await window.claude.use('db'); }catch(e){}
+      if(this.db){ this.mode='claude'; this.role='admin'; return; }
+    }
+    this.mode='api';
+    this.token = localStorage.getItem('panelToken')||'';
+    this.role = localStorage.getItem('panelRole')||'';
+    this.username = localStorage.getItem('panelUser')||'';
+  },
+  authHeaders(){ return this.token ? {'Authorization':'Bearer '+this.token} : {}; },
+  async login(username, password){
+    const res = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username,password})});
+    if(!res.ok) throw new Error('bad credentials');
+    const j = await res.json();
+    this.token=j.token; this.role=j.role; this.username=j.username;
+    localStorage.setItem('panelToken', this.token);
+    localStorage.setItem('panelRole', this.role);
+    localStorage.setItem('panelUser', this.username);
+  },
+  logout(){
+    this.token=''; this.role=''; this.username='';
+    localStorage.removeItem('panelToken'); localStorage.removeItem('panelRole'); localStorage.removeItem('panelUser');
+  },
+  async load(){
+    if(this.mode==='claude'){
+      const doc = await this.db.doc('panel/workorders').get();
+      const data = (doc && doc.data) || {};
+      return {items: data.items || {}, finance: data.finance || {}};
+    }
+    const res = await fetch('/api/data', {headers:this.authHeaders()});
+    if(res.status===401){ const e=new Error('unauthorized'); e.unauthorized=true; throw e; }
+    if(!res.ok) return {items:{}, finance:{}};
+    const j = await res.json();
+    return {items: j.items || {}, finance: j.finance || {}};
+  },
+  async save(items, finance){
+    if(this.mode==='claude'){
+      await this.db.doc('panel/workorders').set({items, finance, updatedAt:Date.now()});
+      return;
+    }
+    const res = await fetch('/api/data', {method:'PUT', headers:{...this.authHeaders(),'Content-Type':'application/json'}, body: JSON.stringify({items, finance})});
+    if(res.status===401){ const e=new Error('unauthorized'); e.unauthorized=true; throw e; }
+    if(res.status===403){ throw new Error('forbidden'); }
+  },
+  async listUsers(){
+    const res = await fetch('/api/users', {headers:this.authHeaders()});
+    if(!res.ok) throw new Error('failed');
+    return (await res.json()).users || [];
+  },
+  async addUser(username,password,role){
+    const res = await fetch('/api/users', {method:'POST', headers:{...this.authHeaders(),'Content-Type':'application/json'}, body:JSON.stringify({username,password,role})});
+    if(!res.ok){ const t = await res.text(); throw new Error(t||'failed'); }
+  },
+  async removeUser(username){
+    const res = await fetch('/api/users?username='+encodeURIComponent(username), {method:'DELETE', headers:this.authHeaders()});
+    if(!res.ok) throw new Error('failed');
+  }
+};
+let WORKORDERS = {};
+let FINANCE = {};
+
+async function initApp(){
+  await Store.init();
+  applyRoleUI();
+  if(Store.mode==='claude'){
+    const d = await Store.load().catch(()=>({items:{},finance:{}}));
+    WORKORDERS = d.items; FINANCE = d.finance;
+    render();
+    return;
+  }
+  if(!Store.token){ showGate(); return; }
+  try{
+    const d = await Store.load();
+    WORKORDERS = d.items; FINANCE = d.finance;
+    render();
+  }catch(e){
+    if(e && e.unauthorized) showGate();
+    else render();
+  }
+}
+function applyRoleUI(){
+  const isApi = Store.mode==='api';
+  document.getElementById('logoutBtn').style.display = isApi && Store.token ? 'inline-block' : 'none';
+  document.getElementById('roleLabel').style.display = isApi && Store.token ? 'inline-block' : 'none';
+  document.getElementById('roleLabel').textContent = Store.username ? (Store.username+' · '+Store.role) : '';
+  document.getElementById('usersBtn').style.display = isApi && Store.role==='admin' ? 'inline-block' : 'none';
+  document.getElementById('uploadsSection').style.display = (Store.role==='admin') ? 'grid' : 'none';
+}
+function showGate(){ document.getElementById('gateBg').classList.add('open'); }
+document.getElementById('gateForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const u = document.getElementById('gateUser').value.trim();
+  const p = document.getElementById('gateInput').value;
+  try{
+    await Store.login(u,p);
+    document.getElementById('gateBg').classList.remove('open');
+    document.getElementById('gateErr').textContent = '';
+    applyRoleUI();
+    const d = await Store.load();
+    WORKORDERS = d.items; FINANCE = d.finance;
+    render();
+  }catch(err){
+    document.getElementById('gateErr').textContent = 'Invalid username or password.';
+  }
+});
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  Store.logout();
+  applyRoleUI();
+  location.reload();
+});
+async function persist(){
+  try{ await Store.save(WORKORDERS, FINANCE); }
+  catch(e){
+    if(e && e.unauthorized) showGate();
+    console.error('persist failed', e);
+  }
+}
+
+// ---------- users management ----------
+document.getElementById('usersBtn').addEventListener('click', openUsers);
+async function openUsers(){
+  document.getElementById('usersBg').classList.add('open');
+  await refreshUsersList();
+}
+function closeUsers(){ document.getElementById('usersBg').classList.remove('open'); }
+document.getElementById('usersBg').addEventListener('click', e=>{ if(e.target.id==='usersBg') closeUsers(); });
+async function refreshUsersList(){
+  const box = document.getElementById('usersList');
+  box.innerHTML = 'Loading...';
+  try{
+    const users = await Store.listUsers();
+    box.innerHTML = users.length ? users.map(u=>`
+      <div class="user-row"><span>${u.username}<span class="u-role">${u.role}</span></span>
+      <button class="btn danger" onclick="removeUserClick('${u.username}')">Remove</button></div>
+    `).join('') : '<div class="empty" style="padding:14px 0">No additional users yet.</div>';
+  }catch(e){ box.innerHTML = '<div class="empty">Failed to load users.</div>'; }
+}
+async function removeUserClick(username){
+  try{ await Store.removeUser(username); await refreshUsersList(); }
+  catch(e){ document.getElementById('usersErr').textContent = 'Failed to remove user.'; }
+}
+document.getElementById('addUserForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const username = document.getElementById('newUsername').value.trim();
+  const password = document.getElementById('newPassword').value;
+  const role = document.getElementById('newRole').value;
+  document.getElementById('usersErr').textContent = '';
+  try{
+    await Store.addUser(username,password,role);
+    document.getElementById('addUserForm').reset();
+    await refreshUsersList();
+  }catch(err){
+    document.getElementById('usersErr').textContent = 'Could not add user (maybe it already exists).';
+  }
+});
+
+// ---------- excel helpers ----------
+function readWorkbook(file){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = e => {
+      try{
+        const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {defval:null, raw:false});
+        resolve(rows);
+      }catch(err){ reject(err); }
+    };
+    r.onerror = reject;
+    r.readAsArrayBuffer(file);
+  });
+}
+function findKey(row, candidates){
+  const keys = Object.keys(row);
+  for(const c of candidates){ const hit = keys.find(k => k.trim().toLowerCase() === c.toLowerCase()); if(hit) return hit; }
+  for(const c of candidates){ const hit = keys.find(k => k.trim().toLowerCase().includes(c.toLowerCase())); if(hit) return hit; }
+  return null;
+}
+
+async function handleFile1(file){
+  const log = document.getElementById('log1');
+  log.textContent = 'Reading...';
+  try{
+    const rows = await readWorkbook(file);
+    if(!rows.length){ log.textContent = 'File is empty.'; return; }
+    const kWO = findKey(rows[0], ['WORKORDER_ID']);
+    const kSite = findKey(rows[0], ['SITE_ID']);
+    const kIdent = findKey(rows[0], ['IDENTIFIER_','IDENTIFIER']);
+    const kRegion = findKey(rows[0], ['REGION_','REGION']);
+    const kProvince = findKey(rows[0], ['PROVINCE']);
+    const kCity = findKey(rows[0], ['CITY']);
+    const kCategory = findKey(rows[0], ['PROJECT_CATAGORY','PROJECT_CATEGORY']);
+    const kScope = findKey(rows[0], ['SCOPE_SCENARIO_','SCOPE_SCENARIO']);
+    const kSiteStatus = findKey(rows[0], ['SITE_STATUS']);
+    const kBpStatus = findKey(rows[0], ['BP_STATUS']);
+    const kContractor = findKey(rows[0], ['CONTRACTOR']);
+    let n=0, noWo=0, rowIdx=0;
+    rows.forEach(row=>{
+      rowIdx++;
+      const woRaw = kWO ? row[kWO] : null;
+      const wo = woRaw ? String(parseInt(woRaw,10)) : null;
+      const hasWo = wo && wo!=='NaN';
+      const identVal = kIdent ? row[kIdent] : null;
+      const key = hasWo ? wo : ('noWO_' + (identVal || (kSite?row[kSite]:'') || rowIdx));
+      const rec = WORKORDERS[key] || {wo: hasWo ? wo : null, id: key};
+      rec.noWO = !hasWo;
+      rec.site = kSite ? row[kSite] : rec.site;
+      rec.identifier = kIdent ? row[kIdent] : rec.identifier;
+      rec.region = kRegion ? row[kRegion] : rec.region;
+      rec.province = kProvince ? row[kProvince] : rec.province;
+      rec.city = kCity ? row[kCity] : rec.city;
+      rec.category = kCategory ? row[kCategory] : rec.category;
+      rec.scope = kScope ? row[kScope] : rec.scope;
+      rec.siteStatus = kSiteStatus ? row[kSiteStatus] : rec.siteStatus;
+      rec.bpStatus = kBpStatus ? row[kBpStatus] : rec.bpStatus;
+      rec.contractor = kContractor ? row[kContractor] : rec.contractor;
+      WORKORDERS[key] = rec;
+      if(hasWo) n++; else noWo++;
+    });
+    await persist();
+    log.textContent = `${n} rows applied` + (noWo? ` (${noWo} rows with no WO shown in a separate column)`:'');
+    render();
+  }catch(err){ log.textContent = 'Error reading file: ' + err.message; }
+}
+
+function extractSiteAndWO(reqNumber){
+  const parts = String(reqNumber).split('_');
+  if(parts.length < 2) return {site:null, wo:null};
+  const woPart = parts[parts.length-1];
+  const site = parts[parts.length-2];
+  const woMatch = woPart.match(/WO(\d+)/i);
+  const wo = woMatch ? woMatch[1] : null;
+  return {site, wo};
+}
+function fixTime(raw){
+  if(!raw) return raw;
+  const s = String(raw).trim();
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}):(\d{1,2})$/);
+  if(m) return `${m[1]} ${m[2].padStart(2,'0')}:${m[3].padStart(2,'0')}`;
+  return s;
+}
+async function handleFile2(file){
+  const log = document.getElementById('log2');
+  log.textContent = 'Reading...';
+  try{
+    const rows = await readWorkbook(file);
+    if(!rows.length){ log.textContent = 'File is empty.'; return; }
+    const kReq = findKey(rows[0], ['Request Number']);
+    const kLaunch = findKey(rows[0], ['Launch Date']);
+    const kReceive = findKey(rows[0], ['Receive Date']);
+    const kNode = findKey(rows[0], ['Current Node']);
+    if(!kReq || !kNode){ log.textContent = 'Required columns not found.'; return; }
+    let updated=0, regressedNow=[], skipped=0;
+    rows.forEach(row=>{
+      const {site, wo} = extractSiteAndWO(row[kReq]);
+      if(!wo || !site){ skipped++; return; }
+      const launch = kLaunch ? fixTime(row[kLaunch]) : null;
+      const receive = kReceive ? fixTime(row[kReceive]) : null;
+      const stage = normStage(row[kNode]);
+      const rec = WORKORDERS[wo] || {wo, id: wo};
+      rec.site = rec.site || site;
+      rec.launchDate = launch || rec.launchDate;
+      const prevStageLabel = rec.currentStageLabel;
+      const prevMaxSeq = rec.maxSeq === undefined ? -1 : rec.maxSeq;
+      rec.currentStageKey = stage.key;
+      rec.currentStageLabel = stage.label;
+      rec.currentStageSeq = stage.seq;
+      rec.currentStageGroup = stage.group;
+      rec.receiveDate = receive || rec.receiveDate;
+      rec.history = rec.history || [];
+      if(prevStageLabel !== stage.label){
+        rec.history.push({date: receive || new Date().toISOString(), stage: stage.label});
+        if(stage.seq >= 0){
+          if(prevMaxSeq >= 0 && stage.seq < prevMaxSeq){ rec.regressed = true; rec.regressedFrom = prevStageLabel; }
+          else rec.regressed = false;
+          rec.maxSeq = Math.max(prevMaxSeq, stage.seq);
+        }
+      }
+      if(rec.regressed) regressedNow.push(rec.site+' / WO'+wo);
+      WORKORDERS[wo] = rec;
+      updated++;
+    });
+    await persist();
+    log.textContent = `${updated} work orders updated` +
+      (skipped? ` (${skipped} rows could not be parsed)`:'') +
+      (regressedNow.length? `\n🔴 ${regressedNow.length} regressed: ${regressedNow.slice(0,5).join(', ')}${regressedNow.length>5?' ...':''}` : '');
+    render();
+  }catch(err){ log.textContent = 'Error reading file: ' + err.message; }
+}
+async function handleFile3(file){
+  const log = document.getElementById('log3');
+  log.textContent = 'Reading...';
+  try{
+    const rows = await readWorkbook2D(file);
+    if(!rows.length){ log.textContent = 'File is empty.'; return; }
+    let start = 0;
+    // skip a header row if the 3rd column doesn't look numeric
+    const looksHeader = rows[0] && isNaN(parseAmount(rows[0][2]));
+    if(looksHeader) start = 1;
+    let n=0;
+    for(let i=start;i<rows.length;i++){
+      const row = rows[i];
+      if(!row || !row[0]) continue;
+      const site = String(row[0]).trim();
+      const contractor = row[1] ? String(row[1]).trim() : null;
+      const determined = parseAmount(row[2]);
+      const paid = parseAmount(row[3]);
+      let remaining = parseAmount(row[4]);
+      if(isNaN(remaining) && !isNaN(determined) && !isNaN(paid)) remaining = determined - paid;
+      FINANCE[site] = {
+        contractor: contractor || (FINANCE[site]&&FINANCE[site].contractor),
+        determined: isNaN(determined)?null:determined,
+        paid: isNaN(paid)?null:paid,
+        remaining: isNaN(remaining)?null:remaining
+      };
+      n++;
+    }
+    await persist();
+    log.textContent = `${n} sites' payment records applied`;
+    render();
+  }catch(err){ log.textContent = 'Error reading file: ' + err.message; }
+}
+function parseAmount(v){
+  if(v===null||v===undefined||v==='') return NaN;
+  const n = parseFloat(String(v).replace(/[, ]/g,''));
+  return n;
+}
+function readWorkbook2D(file){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = e => {
+      try{
+        const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+        resolve(rows);
+      }catch(err){ reject(err); }
+    };
+    r.onerror = reject;
+    r.readAsArrayBuffer(file);
+  });
+}
+document.getElementById('file1').addEventListener('change', e=>{ if(e.target.files[0]) handleFile1(e.target.files[0]); });
+document.getElementById('file2').addEventListener('change', e=>{ if(e.target.files[0]) handleFile2(e.target.files[0]); });
+document.getElementById('file3').addEventListener('change', e=>{ if(e.target.files[0]) handleFile3(e.target.files[0]); });
+
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.tab).classList.add('active');
+  });
+});
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id==='view-'+name));
+}
+
+let redOnly = false;
+document.getElementById('redOnly').addEventListener('click', e=>{ redOnly = !redOnly; e.target.classList.toggle('active', redOnly); render(); });
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('statusFilter').addEventListener('change', render);
+document.getElementById('stageFilter').addEventListener('change', render);
+document.getElementById('contractorFilter').addEventListener('change', render);
+document.getElementById('paymentFilter').addEventListener('change', render);
+
+const KANBAN_COLUMNS = (()=>{
+  const seen = new Set(); const cols = [];
+  STAGES.slice().sort((a,b)=>a.seq-b.seq).forEach(st=>{ if(seen.has(st.label)) return; seen.add(st.label); cols.push(st.label); });
+  cols.push('Delete'); cols.push('No WO'); cols.unshift('Unknown');
+  return cols;
+})();
+let stageFilterPopulated = false;
+function populateStageFilter(){
+  if(stageFilterPopulated) return;
+  const sel = document.getElementById('stageFilter');
+  KANBAN_COLUMNS.forEach(label=>{ const opt=document.createElement('option'); opt.value=label; opt.textContent=label; sel.appendChild(opt); });
+  stageFilterPopulated = true;
+}
+function setStageFilter(label){ document.getElementById('stageFilter').value = label; switchTab('kanban'); render(); }
+function statusBadgeClass(s){
+  if(!s) return '';
+  const l = s.toLowerCase();
+  if(l.includes('on-going')||l.includes('ongoing')) return 'ongoing';
+  if(l.includes('done')) return 'done';
+  if(l.includes('descope')) return 'descoped';
+  if(l.includes('problem')) return 'problematic';
+  return '';
+}
+
+function render(){
+  populateStageFilter();
+  populateContractorFilter();
+  const list = Object.values(WORKORDERS);
+  document.getElementById('subline').textContent = `${list.length} work orders in the database`;
+  const statCounts = {ongoing:0, done:0, descoped:0, problematic:0, regressed:0};
+  list.forEach(r=>{ const c=statusBadgeClass(r.siteStatus); if(c) statCounts[c]++; if(r.regressed) statCounts.regressed++; });
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><b>${statCounts.ongoing}</b><span>On-Going</span></div>
+    <div class="stat"><b>${statCounts.done}</b><span>Done</span></div>
+    <div class="stat"><b>${statCounts.descoped}</b><span>Descoped</span></div>
+    <div class="stat"><b>${statCounts.problematic}</b><span>Problematic</span></div>
+    <div class="stat" style="border-color:var(--red)"><b style="color:var(--red)">${statCounts.regressed}</b><span>Regressed</span></div>`;
+
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('statusFilter').value;
+  const stageFilter = document.getElementById('stageFilter').value;
+  const contractorFilter = document.getElementById('contractorFilter').value;
+  const paymentFilter = document.getElementById('paymentFilter').value;
+  const filtered = list.filter(r=>{
+    if(redOnly && !r.regressed) return false;
+    if(statusFilter && statusBadgeClass(r.siteStatus) !== statusBadgeClass(statusFilter)) return false;
+    if(stageFilter){
+      if(stageFilter==='Delete' && r.currentStageKey!=='delete') return false;
+      else if(stageFilter==='No WO' && !r.noWO) return false;
+      else if(stageFilter==='Unknown' && (r.noWO || r.currentStageLabel)) return false;
+      else if(stageFilter!=='Delete' && stageFilter!=='Unknown' && stageFilter!=='No WO' && (r.noWO || r.currentStageLabel!==stageFilter || r.currentStageKey==='delete')) return false;
+    }
+    const fin = r.site ? FINANCE[r.site] : null;
+    if(contractorFilter && (!fin || fin.contractor!==contractorFilter)) return false;
+    if(paymentFilter==='outstanding' && !(fin && fin.remaining>0)) return false;
+    if(paymentFilter==='paid' && !(fin && fin.remaining<=0 && fin.determined!=null)) return false;
+    if(paymentFilter==='none' && fin) return false;
+    if(q && !( (r.site||'').toLowerCase().includes(q) || (r.wo||'').toString().toLowerCase().includes(q) || (r.identifier||'').toLowerCase().includes(q) )) return false;
+    return true;
+  });
+
+  renderKanban(filtered, stageFilter);
+  renderTimeline(filtered);
+  renderFlowmap(filtered);
+  renderDashboard(filtered);
+}
+let contractorFilterPopulated = '';
+function populateContractorFilter(){
+  const contractors = [...new Set(Object.values(FINANCE).map(f=>f.contractor).filter(Boolean))].sort();
+  const sig = contractors.join('|');
+  if(sig===contractorFilterPopulated) return;
+  contractorFilterPopulated = sig;
+  const sel = document.getElementById('contractorFilter');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All contractors</option>' + contractors.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value = contractors.includes(cur) ? cur : '';
+}
+
+function renderKanban(filtered, stageFilter){
+  const kanban = document.getElementById('kanban');
+  if(!filtered.length){ kanban.innerHTML = '<div class="empty" style="width:100%">No data yet — upload the files above.</div>'; return; }
+  const columns = stageFilter ? [stageFilter] : KANBAN_COLUMNS;
+  kanban.innerHTML = columns.map(label=>{
+    let items;
+    if(label==='Delete') items = filtered.filter(r=>r.currentStageKey==='delete');
+    else if(label==='No WO') items = filtered.filter(r=>r.noWO);
+    else if(label==='Unknown') items = filtered.filter(r=>!r.noWO && !r.currentStageLabel);
+    else items = filtered.filter(r=>!r.noWO && r.currentStageLabel===label && r.currentStageKey!=='delete');
+    items.sort((a,b)=> (b.regressed?1:0)-(a.regressed?1:0) || (a.site||'').localeCompare(b.site||''));
+    const cards = items.map(r=>{
+      const cls = statusBadgeClass(r.siteStatus);
+      const badge = cls ? `<span class="badge ${cls}">${r.siteStatus}</span>` : '';
+      const pct = progressPercent(r);
+      return `
+      <div class="kcard ${r.regressed?'regressed':''}" onclick="openModal('${r.id}')">
+        <div class="top"><div><div class="site-code">${r.site||'—'}</div><div class="wo-id">${r.wo?('WO'+r.wo):'No WO'}</div></div>${badge}</div>
+        <div class="meta">${[r.province,r.city].filter(Boolean).join(' / ')||'—'}</div>
+        ${r.regressed?`<div class="regress-flag">🔴 from "${r.regressedFrom}"</div>`:''}
+        ${pct!==null?`<div class="prog"><i style="width:${pct}%"></i></div><div class="prog-label">${pct}% complete</div>`:''}
+      </div>`;
+    }).join('') || '<div class="kcol-empty">Empty</div>';
+    return `<div class="kcol"><div class="kcol-head"><b>${label}</b><span>${items.length}</span></div><div class="kcol-body">${cards}</div></div>`;
+  }).join('');
+}
+
+function renderTimeline(filtered){
+  const rows = filtered.filter(r=>!r.noWO && r.history && r.history.length);
+  const tl = document.getElementById('timeline');
+  const legend = document.getElementById('tlLegend');
+  if(!rows.length){ tl.innerHTML = '<div class="empty">No history data to show.</div>'; legend.innerHTML=''; return; }
+  let minD = null, maxD = new Date();
+  rows.forEach(r=>{ r.history.forEach(h=>{ const d=parseDate(h.date); if(d && (!minD||d<minD)) minD=d; }); });
+  if(!minD) minD = new Date(maxD.getTime() - 30*86400000);
+  const span = Math.max(1, maxD - minD);
+  const usedLabels = new Set();
+  rows.sort((a,b)=>(a.site||'').localeCompare(b.site||''));
+  tl.innerHTML = rows.map(r=>{
+    const segs = r.history.map((h,i)=>{
+      const start = parseDate(h.date) || minD;
+      const end = r.history[i+1] ? (parseDate(r.history[i+1].date)||maxD) : maxD;
+      usedLabels.add(h.stage);
+      const left = ((start-minD)/span)*100;
+      const width = Math.max(0.6, ((end-start)/span)*100);
+      return `<div class="tl-seg" style="left:${left}%;width:${width}%;background:${stageColor(h.stage)}" title="${h.stage}"></div>`;
+    }).join('');
+    return `<div class="tl-row"><div class="tl-label">${r.site||'—'} · WO${r.wo}</div><div class="tl-track">${segs}</div></div>`;
+  }).join('');
+  legend.innerHTML = KANBAN_COLUMNS.filter(l=>usedLabels.has(l)).map(l=>`<span><i style="background:${stageColor(l)}"></i>${l}</span>`).join('');
+}
+
+function renderFlowmap(filtered){
+  const countFor = (label)=> filtered.filter(r=>!r.noWO && r.currentStageLabel===label && r.currentStageKey!=='delete').length;
+  const box = (label, small)=> `<div class="fbox ${small?'small':''} ${label==='End'?'end':''}" onclick="setStageFilter('${label}')"><b>${countFor(label)}</b><span>${label}</span></div>`;
+  document.getElementById('flowmap').innerHTML = `
+    ${box('SFR Assessment')}<div class="farrow">→</div>
+    ${box('SFR Modification', true)}<div class="farrow">→</div>
+    ${box('Site Implementation')}<div class="farrow">→</div>
+    ${box('RND Impl. Check')}<div class="farrow">→</div>
+    ${box('FAC Impl')}<div class="farrow">→</div>
+    <div class="fbranches">
+      <div class="fbranch">${box('Project FAC RND FDD', true)}<div class="farrow">→</div>${box('RND FDD FAC Approval', true)}</div>
+      <div class="fbranch">${box('Project FAC MS', true)}<div class="farrow">→</div>${box('MS FAC Approval', true)}<div class="farrow">→</div>${box('Project FAC QA', true)}<div class="farrow">→</div>${box('QA FAC Approval', true)}</div>
+    </div>
+    <div class="farrow">→</div>${box('PM FAC Assessment')}<div class="farrow">→</div>${box('End')}
+  `;
+}
+
+function renderDashboard(filtered){
+  const active = filtered.filter(r=>!r.noWO && r.currentStageKey!=='delete');
+  const byStage = {};
+  active.forEach(r=>{ const l=r.currentStageLabel||'Unknown'; byStage[l]=(byStage[l]||0)+1; });
+  const maxCount = Math.max(1, ...Object.values(byStage));
+  const distHtml = Object.entries(byStage).sort((a,b)=>b[1]-a[1]).map(([label,count])=>`
+    <div class="bar-row"><div class="bl">${label}</div><div class="bt"><div class="bf" style="width:${(count/maxCount)*100}%"></div></div><div class="bv">${count}</div></div>
+  `).join('') || '<div class="empty">No data</div>';
+
+  const durByStage = {};
+  active.forEach(r=>{
+    if(!r.history) return;
+    r.history.forEach((h,i)=>{
+      const start = parseDate(h.date);
+      const end = r.history[i+1] ? parseDate(r.history[i+1].date) : new Date();
+      if(!start || !end) return;
+      const days = Math.max(0,(end-start)/86400000);
+      (durByStage[h.stage] = durByStage[h.stage]||[]).push(days);
+    });
+  });
+  const avgRows = Object.entries(durByStage).map(([label,arr])=>[label, arr.reduce((a,b)=>a+b,0)/arr.length]).sort((a,b)=>b[1]-a[1]);
+  const maxAvg = Math.max(1, ...avgRows.map(r=>r[1]));
+  const avgHtml = avgRows.map(([label,avg])=>`
+    <div class="bar-row"><div class="bl">${label}</div><div class="bt"><div class="bf" style="width:${(avg/maxAvg)*100}%;background:var(--amber)"></div></div><div class="bv">${avg.toFixed(1)}d</div></div>
+  `).join('') || '<div class="empty">No data</div>';
+
+  const stuck = active.map(r=>{
+    const last = r.history && r.history.length ? parseDate(r.history[r.history.length-1].date) : parseDate(r.receiveDate);
+    const days = last ? Math.floor((new Date()-last)/86400000) : null;
+    return {...r, daysInStage: days};
+  }).filter(r=>r.daysInStage!==null).sort((a,b)=>b.daysInStage-a.daysInStage).slice(0,10);
+  const stuckHtml = stuck.map(r=>`<div class="stuck-row"><span>${r.site||'—'} · ${r.currentStageLabel}</span><b>${r.daysInStage} days</b></div>`).join('') || '<div class="empty">No data</div>';
+
+  const regressedList = filtered.filter(r=>r.regressed);
+  const regHtml = regressedList.map(r=>`<div class="stuck-row"><span>${r.site||'—'} · WO${r.wo}</span><b style="color:var(--red)">${r.regressedFrom} ← ${r.currentStageLabel}</b></div>`).join('') || '<div class="empty">None</div>';
+
+  const pcts = active.map(progressPercent).filter(p=>p!==null);
+  const overallPct = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : 0;
+
+  const finRecords = Object.values(FINANCE);
+  const sumDet = finRecords.reduce((s,f)=>s+(f.determined||0),0);
+  const sumPaid = finRecords.reduce((s,f)=>s+(f.paid||0),0);
+  const sumRem = finRecords.reduce((s,f)=>s+(f.remaining||0),0);
+  const byContractor = {};
+  finRecords.forEach(f=>{ const c=f.contractor||'Unknown'; byContractor[c]=(byContractor[c]||0)+(f.determined||0); });
+  const maxC = Math.max(1, ...Object.values(byContractor));
+  const contractorHtml = Object.entries(byContractor).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`
+    <div class="bar-row"><div class="bl">${c}</div><div class="bt"><div class="bf" style="width:${(v/maxC)*100}%;background:var(--blue)"></div></div><div class="bv">${money(v)}</div></div>
+  `).join('') || '<div class="empty">No financial data uploaded</div>';
+
+  document.getElementById('dashboard').innerHTML = `
+    <div class="dash-card"><h3>Overall project progress</h3>
+      <div class="big-progress"><div class="num">${overallPct}%</div><div class="bar"><i style="width:${overallPct}%"></i></div></div>
+      <div style="font-size:11.5px;color:var(--text-dim)">Average across ${pcts.length} active work orders</div>
+    </div>
+    <div class="dash-card"><h3>Financial summary</h3>
+      <div class="row"><span>Total determined</span><span>${money(sumDet)}</span></div>
+      <div class="row"><span>Total paid</span><span>${money(sumPaid)}</span></div>
+      <div class="row"><span>Total remaining</span><span>${money(sumRem)}</span></div>
+      ${contractorHtml}
+    </div>
+    <div class="dash-card"><h3>Distribution by stage</h3>${distHtml}</div>
+    <div class="dash-card"><h3>Average days spent per stage</h3>${avgHtml}</div>
+    <div class="dash-card"><h3>Stuck sites (longest time in current stage)</h3>${stuckHtml}</div>
+    <div class="dash-card"><h3>Regressed sites</h3>${regHtml}</div>
+  `;
+}
+
+function openModal(id){
+  const r = WORKORDERS[id];
+  if(!r) return;
+  const stepsHtml = STEP_ORDER.map(k=>{
+    const st = STAGES.find(s=>s.key===k) || {seq:STAGES.find(s=>s.label.toLowerCase().includes(k.split(' /')[0]))?.seq};
+    let seq = st ? st.seq : null;
+    if(k.includes('/')) seq = 5;
+    let cls = '';
+    if(r.currentStageSeq !== undefined && seq !== null){
+      if(r.currentStageSeq === seq || (k.includes('/') && r.currentStageGroup===4)) cls='current';
+      else if(r.currentStageSeq > seq) cls='done';
+    }
+    return `<span class="step ${cls}">${k}</span>`;
+  }).join('');
+  const histHtml = (r.history||[]).slice().reverse().map(h=>`<div><span>${h.stage}</span><span>${h.date||''}</span></div>`).join('') || '<div>—</div>';
+  const pct = progressPercent(r);
+  const fin = r.site ? FINANCE[r.site] : null;
+  const finHtml = fin ? `
+    <div class="fin-section"><h4>Contractor payment</h4>
+      <div class="row"><span>Contractor</span><span>${fin.contractor||'—'}</span></div>
+      <div class="row"><span>Determined amount</span><span>${money(fin.determined)}</span></div>
+      <div class="row"><span>Paid amount</span><span>${money(fin.paid)}</span></div>
+      <div class="row"><span>Remaining amount</span><span>${money(fin.remaining)}</span></div>
+    </div>` : '';
+  document.getElementById('modal').innerHTML = `
+    <span class="close" onclick="closeModal()">×</span>
+    <h2>${r.site||'—'}</h2>
+    <div class="wo-id" style="margin-bottom:14px">${r.wo?('WO'+r.wo):'No WO number'}${r.identifier?' · '+r.identifier:''}</div>
+    ${pct!==null?`<div class="big-progress"><div class="num">${pct}%</div><div class="bar"><i style="width:${pct}%"></i></div></div>`:''}
+    <div class="row"><span>Site status</span><span>${r.siteStatus||'—'}</span></div>
+    <div class="row"><span>BP status</span><span>${r.bpStatus||'—'}</span></div>
+    <div class="row"><span>Current stage</span><span>${r.currentStageLabel||'—'}</span></div>
+    <div class="row"><span>Province / City</span><span>${[r.province,r.city].filter(Boolean).join(' / ')||'—'}</span></div>
+    <div class="row"><span>Category</span><span>${r.category||'—'}</span></div>
+    <div class="row"><span>Scope</span><span>${r.scope||'—'}</span></div>
+    <div class="row"><span>Contractor (site record)</span><span>${r.contractor||'—'}</span></div>
+    <div class="row"><span>Created</span><span>${r.launchDate||'—'}</span></div>
+    <div class="row"><span>Entered current stage</span><span>${r.receiveDate||'—'}</span></div>
+    ${r.regressed?`<div class="row" style="color:#ffb3b3"><span>Regression warning</span><span>${r.regressedFrom} ← ${r.currentStageLabel}</span></div>`:''}
+    <div class="steps">${stepsHtml}</div>
+    <div class="hist">${histHtml}</div>
+    ${finHtml}`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+document.getElementById('modalBg').addEventListener('click', e=>{ if(e.target.id==='modalBg') closeModal(); });
+
+document.getElementById('rangeBtn').addEventListener('click', ()=>{
+  const fromVal = document.getElementById('rangeFrom').value;
+  const toVal = document.getElementById('rangeTo').value;
+  const box = document.getElementById('rangeResult');
+  if(!fromVal || !toVal){ box.innerHTML = '<div class="empty">Pick both dates.</div>'; return; }
+  const from = new Date(fromVal+'T00:00:00');
+  const to = new Date(toVal+'T23:59:59');
+  if(from>to){ box.innerHTML = '<div class="empty">Start date must be before end date.</div>'; return; }
+  const rows = Object.values(WORKORDERS).filter(r=>!r.noWO && r.currentStageKey!=='delete');
+  let sumFrom=0, sumTo=0, nFrom=0, nTo=0;
+  const table = rows.map(r=>{
+    const seqFrom = stageSeqAtDate(r, from);
+    const seqTo = stageSeqAtDate(r, to);
+    const pctFrom = seqFrom!==null ? Math.round((seqFrom/MAX_SEQ)*100) : null;
+    const pctTo = seqTo!==null ? Math.round((seqTo/MAX_SEQ)*100) : null;
+    if(pctFrom!==null){ sumFrom+=pctFrom; nFrom++; }
+    if(pctTo!==null){ sumTo+=pctTo; nTo++; }
+    return {site:r.site, wo:r.wo, pctFrom, pctTo};
+  }).filter(x=>x.pctFrom!==null || x.pctTo!==null);
+  const avgFrom = nFrom ? Math.round(sumFrom/nFrom) : 0;
+  const avgTo = nTo ? Math.round(sumTo/nTo) : 0;
+  const delta = avgTo - avgFrom;
+  const rowsHtml = table.sort((a,b)=>((b.pctTo||0)-(b.pctFrom||0))-((a.pctTo||0)-(a.pctFrom||0))).slice(0,30).map(x=>`
+    <tr><td>${x.site||'—'} · WO${x.wo}</td><td>${x.pctFrom!==null?x.pctFrom+'%':'—'}</td><td>${x.pctTo!==null?x.pctTo+'%':'—'}</td>
+    <td style="color:${(x.pctTo||0)-(x.pctFrom||0)>0?'var(--accent)':((x.pctTo||0)-(x.pctFrom||0))<0?'var(--red)':'var(--text-dim)'}">${((x.pctTo||0)-(x.pctFrom||0))>=0?'+':''}${(x.pctTo||0)-(x.pctFrom||0)}%</td></tr>
+  `).join('');
+  box.innerHTML = `
+    <div style="margin-bottom:10px">Overall average progress: <b>${avgFrom}%</b> → <b>${avgTo}%</b>
+    (<span style="color:${delta>0?'var(--accent)':delta<0?'var(--red)':'var(--text-dim)'}">${delta>=0?'+':''}${delta}%</span>)</div>
+    <table><thead><tr><th>Site / WO</th><th>${fromVal}</th><th>${toVal}</th><th>Change</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+  `;
+});
+
+initApp();
+</script>
+</body>
+</html>
